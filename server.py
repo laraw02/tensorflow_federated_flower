@@ -1,7 +1,7 @@
 # Credits. This code has been adapted from :
 # https://github.com/adap/flower/tree/main/examples/advanced-tensorflow
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 import flwr as fl
 
 import tensorflow as tf
@@ -11,16 +11,21 @@ import numpy as np
 from sklearn.utils import shuffle
 from keras.preprocessing import image
 
+import pandas as pd
 import edgeimpulse as ei
 
+
+save_evaluation = False
+save_updated_model = True
+
 # server address = {IP_ADDRESS}:{PORT}
-server_address = "0.0.0.0:5050"
+server_address = "172.26.13.150:5050"
 
 # this variable determines if model profiling and deployment with Edge Impulse will be done
 profile_and_deploy_model_with_EI = False
 
 # change this to your Edge Impulse API key
-ei.API_KEY = ""
+ei.API_KEY = "ei_8df1682c9df573ddafcfa6b5390b537bbe9811860ab9fadd88812a3f5287ca9e"
 
 # defining a .eim file that will be automatically downloaded on the server computer
 deploy_eim = "modelfile.eim"
@@ -34,9 +39,11 @@ number_of_classes = len(classes)
 # a larger one means more data goes to the model(good thing) but processing time and model size will increase
 IMAGE_SIZE = (160, 160)
 
-federatedLearningcounts = 6
+federatedLearningcounts = 3
 local_client_epochs = 20
 local_client_batch_size = 8
+
+file_name = "loss_metrics"
 
 def main() -> None:
     # load and compile model for : server-side parameter initialization, server-side parameter evaluation
@@ -68,7 +75,7 @@ def main() -> None:
         include_top=False,
         weights="imagenet",
         input_tensor=None,
-        pooling=None,
+        pooling=None, #4D tensor output of last convolutional layer
         classes=2,
         classifier_activation="softmax"
     )
@@ -76,9 +83,9 @@ def main() -> None:
     base_model.trainable = False
 
     # define classification head
-    x = tf.keras.layers.GlobalAveragePooling2D()(base_model.output)
-    x = tf.keras.layers.Dense(128, activation='relu')(x)
-    outputs = tf.keras.layers.Dense(2, activation='softmax')(x)
+    x = tf.keras.layers.GlobalAveragePooling2D()(base_model.output) #average pooling to output of base model
+    x = tf.keras.layers.Dense(128, activation='relu')(x) #addes fully connected layer with 128 units (learn higher level frauters from pooled features)
+    outputs = tf.keras.layers.Dense(2, activation='softmax')(x) #adds final output layer with 2 units with softmax activation fct
 
     # create the final model
     model = tf.keras.Model(inputs=base_model.input, outputs=outputs)
@@ -88,9 +95,88 @@ def main() -> None:
 
     # print a summary of the model architecture
     #model.summary()
+    
+    
+    class AggregateCustomMetricStrategy(fl.server.strategy.FedAvg):
+        def aggregate_evaluate(
+            self,
+            server_round,
+            results,
+            failures,
+        ):
+            """Aggregate evaluation accuracy using weighted average and write results to .csv file"""
 
-    # create strategy
-    strategy = fl.server.strategy.FedAvg(
+            if not results:
+                return None, {}
+
+            # Call aggregate_evaluate from base class (FedAvg) to aggregate loss and metrics
+            aggregated_loss, aggregated_metrics = super().aggregate_evaluate(server_round, results, failures)
+
+            # Weigh accuracy of each client by number of examples used
+            accuracies = [r.metrics["accuracy"] * r.num_examples for _, r in results]
+            examples = [r.num_examples for _, r in results]
+
+            # Aggregate and print custom metric
+            aggregated_accuracy = sum(accuracies) / sum(examples)
+            #print(f"AGGREGATION OF CLIENT MODELS EVALUATED")
+
+            if save_evaluation: 
+                new_data = {'aggregated_loss': [aggregated_loss], 'aggregated_accuracy': [aggregated_accuracy]}
+                df = pd.DataFrame(new_data)
+
+            # Check if the file exists
+                if os.path.isfile(file_name):
+                # Append new data to the existing CSV file
+                    df.to_csv(file_name, mode='a', header=False, index=False)
+                else:
+                # If the file does not exist, write the header as well
+                    df.to_csv(file_name, mode='w', header=True, index=False)
+                
+                # Return aggregated loss and metrics (i.e., aggregated accuracy)
+            return aggregated_loss, {"accuracy": aggregated_accuracy}
+
+            """
+            with open(file_name, 'a') as f:
+                if f.tell() != 0:
+                    f.write('\n')
+
+                json.dump({'aggregated_loss': aggregated_loss, 'aggregated_accuracy': aggregated_accuracy}, f)
+            """
+
+        def aggregate_fit(
+        self,
+        server_round,
+        results,
+        failures,
+        ):
+            """Save updated global model after each federeated learning round"""
+
+            aggregated_parameters, aggregated_metrics = super().aggregate_fit(server_round, results, failures)
+            if save_updated_model:
+
+                if aggregated_parameters is not None:
+                # Convert `Parameters` to `List[np.ndarray]`
+                    aggregated_ndarrays: List[np.ndarray] = fl.common.parameters_to_ndarrays(aggregated_parameters)
+
+                # Save aggregated_ndarrays
+                    print(f"Saving round {server_round} aggregated_ndarrays...")
+                    np.savez(f"round-{server_round}-weights.npz", *aggregated_ndarrays)
+
+            return aggregated_parameters, aggregated_metrics
+
+            
+    """
+    class SaveEvalutaionStrategy(strategy):
+        def aggregate_evaluate(self, num_rounds, results, failures):
+            loss_aggregated, metrics_aggregated = super().aggregate_evaluate(num_rounds, results, failures)
+            if loss_aggregated and metrics_aggregated is not None:
+                with open(file_name, 'w') as f:
+                    json.dump({'loss_aggregated': loss_aggregated, 'metrics_aggregated': metrics_aggregated}, f)
+                
+    """
+
+        # create strategy
+    strategy = AggregateCustomMetricStrategy(
         fraction_fit=0.3,
         fraction_evaluate=0.2,
         min_fit_clients=2,
@@ -147,6 +233,7 @@ def load_dataset():
     
     return loaded_dataset
 
+#server-side model evaluation after paramter aggregation (using data on server)
 def get_evaluate_fn(model):
     """Return an evaluation function for server-side evaluation."""
 
@@ -176,7 +263,7 @@ def get_evaluate_fn(model):
             # test the updated model
             test_updated_model(model)
 
-            # ***** Using Edge Impulse Python SDK to profile the updated model and deploy it for various MCUs/MPUs *****
+            # ***** Using Edge Impulse Python SDK to profile the updated model and deploy it for various MCUs/MPUs (microcontrollers/microprocessers) *****
             if (profile_and_deploy_model_with_EI):
                 ei_profile_and_deploy_model(model)
             else:
@@ -199,6 +286,7 @@ def evaluate_config(server_round: int):
     val_steps = 4
     return {"val_steps": val_steps}
 
+#testing on one image from dataset_test folder (specify path)
 def test_updated_model(model):
     # test the model by giving it an image and get its prediction
     test_image_head_path = "datasets/dataset_test/head_5.jpg"

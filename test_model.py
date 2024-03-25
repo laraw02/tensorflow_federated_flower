@@ -16,12 +16,12 @@ model = tf.keras.models.load_model('saved_models/mobilenetv2')
 #model.summary()
 
 # test the model by giving it an image and get its prediction
-test_image_head_path = "datasets/dataset_test/-.27iko294.ingestion-c484b64b9-xcl5w.jpg"
+test_image_head_path = "datasets\dataset_test\head_1.jpg"
 test_image_head = cv2.imread(test_image_head_path)
 test_image_head = cv2.cvtColor(test_image_head, cv2.COLOR_BGR2RGB)
 test_image_head = cv2.resize(test_image_head, IMAGE_SIZE)
 
-test_image_hardhat_path = "datasets/dataset_test/-.27ikobka.ingestion-c484b64b9-gnk8v.jpg"
+test_image_hardhat_path = "datasets\dataset_test\hardhat_1.jpg"
 test_image_hardhat = cv2.imread(test_image_hardhat_path)
 test_image_hardhat = cv2.cvtColor(test_image_hardhat, cv2.COLOR_BGR2RGB)
 test_image_hardhat = cv2.resize(test_image_hardhat, IMAGE_SIZE)
