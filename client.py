@@ -61,7 +61,6 @@ class CifarClient(fl.client.NumPyClient):
         # return updated model parameters and results
         parameters_prime = self.model.get_weights()
         num_examples_train = len(self.training_images)
-        #print(f"Number of training images is {len(self.training_images)} ") #changed
         results = {
             "loss": history.history["loss"][0],
             "accuracy": history.history["accuracy"][0],
@@ -133,7 +132,6 @@ def main() -> None:
 
     # to train the model better, we can shuffle the data in the dataset
     training_images, training_labels = shuffle(training_images, training_labels, random_state = 25)
-    print(f"Data loaded size {len(training_labels)}") #changed
 
     # start Flower client
     client = CifarClient(model, training_images, training_labels, test_images, test_labels)
@@ -180,7 +178,7 @@ def load_dataset(client_number):
 
         images = np.array(images, dtype= 'float32')
         labels = np.array(labels, dtype= 'int32')
-        
+
 
         loaded_dataset.append((images, labels))
     
