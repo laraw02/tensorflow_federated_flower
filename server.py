@@ -16,7 +16,7 @@ import edgeimpulse as ei
 
 
 save_evaluation = False
-save_updated_model = True
+save_updated_model = False
 
 # server address = {IP_ADDRESS}:{PORT}
 server_address = "172.26.13.150:5050"

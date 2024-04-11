@@ -138,9 +138,9 @@ def main() -> None:
     # start Flower client
     client = CifarClient(model, training_images, training_labels, test_images, test_labels)
 
-    fl.client.start_numpy_client(
+    fl.client.start_client(
         server_address=server_address,
-        client=client
+        client=client.to_client()
     )
 
 # this function loads different datasets for the clients using the client's number
@@ -180,8 +180,7 @@ def load_dataset(client_number):
 
         images = np.array(images, dtype= 'float32')
         labels = np.array(labels, dtype= 'int32')
-
-        print(len(labels))
+        
 
         loaded_dataset.append((images, labels))
     
