@@ -1,8 +1,8 @@
-# TensorFlow Federated Learning and Edge Impulse model deployment
+# TensorFlow Federated Learning 
 
 ![Cover image](media/cover_image.png)
 
-This repository demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model. Example from https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git but adapted to save global model and aggregated results after every round.
+This repository is from https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git but has been adapted to save global model and aggregated results on the server after every round. The setup and instructions still remain the same. This example demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model.
 
 The main characteristics of this architecture include:
 - At least 2 connected devices(clients) that will individually train a local model.
@@ -60,7 +60,7 @@ python client.py --client_number=1
 python client.py --client_number=2
 ```
 
-8) Once the Federated Learning is complete, the final global model will be saved in the ```saved_models``` directory and also in your Edge Impulse project. We can test this model locally by running ```test_model.py```. To test the model on different images, you can change the images being loaded by ```test_image_head_path``` and ```test_image_hardhat_path``` in the [Python script](test_model.py).
+8) Once the Federated Learning is complete, the final global model will be saved in the ```saved_models``` directory. We can test this model locally by running ```test_model.py```. To test the model on different images, you can change the images being loaded by ```test_image_head_path``` and ```test_image_hardhat_path``` in the [Python script](test_model.py).
 
 ## Warning
 

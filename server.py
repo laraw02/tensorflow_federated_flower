@@ -15,8 +15,8 @@ import pandas as pd
 import edgeimpulse as ei
 
 
-save_evaluation = True
-save_updated_model = True
+save_evaluation = True #new feature
+save_updated_model = True #new feature
 
 # server address = {IP_ADDRESS}:{PORT}
 server_address = "10.46.134.7:5050"
