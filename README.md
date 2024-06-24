@@ -1,6 +1,6 @@
 # TensorFlow Federated Learning 
 
-This repository is from https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git but has been adapted to save the global model and aggregated results on the server after every round. The upload functionality of the final global model to an Edge Impulse project for deployment was also removed to focus solely on federeated learning. The setup and instructions otherwise still remain the same. This example demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model.
+This repository is from https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git but has been adapted to save the global model and aggregated results on the server after every round. Additionally, the client_docker folder contains the Dockerfile to create a docker image for client connection and local training. The upload functionality of the final global model to an Edge Impulse project for deployment was removed to focus solely on federeated learning. The setup and instructions otherwise still remain the same. This example demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model.
 
 The main characteristics of this architecture include:
 - At least 2 connected devices(clients) that will individually train a local model.
