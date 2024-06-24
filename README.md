@@ -1,6 +1,6 @@
 # TensorFlow Federated Learning 
 
-This repository is from https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git but has been adapted to save the global model and aggregated results on the server after every round. The setup and instructions still remain the same. This example demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model.
+This repository is from https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git but has been adapted to save the global model and aggregated results on the server after every round. The upload functionality of the final global model to an Edge Impulse project for deployment was also removed to focus solely on federeated learning. The setup and instructions otherwise still remain the same. This example demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model.
 
 The main characteristics of this architecture include:
 - At least 2 connected devices(clients) that will individually train a local model.
@@ -13,7 +13,7 @@ The main characteristics of this architecture include:
 
 We simulate a situation where we have multiple Computer Vision devices that have a similar image classification problem. 
 
-For this, we use 2 devices to train a MobileNetV2 model to classify if an image is a ```head``` or ```hardhat```. We train the image classification model with these Computer Vision devices using Federated Learning. Finally, a server takes the final updated model and uploads it to an Edge Impulse project so that we can deploy it to any device that can run it. 
+For this, we use 2 devices to train a MobileNetV2 model to classify if an image is a ```head``` or ```hardhat```. We train the image classification model with these Computer Vision devices using Federated Learning. 
 
 There are 4 dataset folders:
 - 2 folders for [client 1](datasets/dataset_client1/) and [client 2](datasets/dataset_client2/) with training and test images
@@ -31,34 +31,29 @@ If you have Python3 you can replace ```pip``` with ```pip3``` in the commands be
 1) Start by cloning the repository on the device that will run as the server. For the client devices, we only need to copy to them the [datasets](datasets/) folder, [requirements_client.txt](requirements_client.txt) and [client.py](client.py). You can also clone the repository on the client devices, but this will load unnecessary files on them. 
 
 
-2) Install dependencies on the device running as the server with the command below:
+2) Install dependencies on the device running as the server and client(s) with the command below:
 ```
-pip install -r requirements_server.txt
-```
-
-3) Install dependencies on the device(s) running as client(s) with the command below. Note that the difference between the server and client dependencies is that the server uses Edge Impulse Python SDK for profiling and deploying the model.
-```
-pip install -r requirements_client.txt
+pip install -r requirements.txt
 ```
 
-4) Next, update ```server_address``` value in both [server.py](server.py) and [client.py](client.py) with the IP address of the device running as the server. If you get an error message from ```server.py``` that says ```_ERROR_MESSAGE_PORT_BINDING_FAILED```, change the server's port to another one that is available.
+3) Next, update ```server_address``` value in both [server.py](server.py) and [client.py](client.py) with the IP address of the device running as the server. If you get an error message from ```server.py``` that says ```_ERROR_MESSAGE_PORT_BINDING_FAILED```, change the server's port to another one that is available.
 
-5) Finally, start the server by running [server.py](server.py) on the device that will act as the server:
+4) Finally, start the server by running [server.py](server.py) on the device that will act as the server:
 ```
 python server.py
 ```
 
-6) Start one client by running [client.py](client.py) on a one device that is running as a client. Note that we need to pass the ```client_number``` so that we can load the dataset for that client. To use a device as the first client, run the command below:
+5) Start one client by running [client.py](client.py) on a one device that is running as a client. Note that we need to pass the ```client_number``` so that we can load the dataset for that client. To use a device as the first client, run the command below:
 ```
 python client.py --client_number=1
 ```
 
-7) To use another device as the second client, run [client.py](client.py) with the command below. Note that we need at least two clients for the Federated Learning to start.
+6) To use another device as the second client, run [client.py](client.py) with the command below. Note that we need at least two clients for the Federated Learning to start.
 ```
 python client.py --client_number=2
 ```
 
-8) Once the Federated Learning is complete, the final global model will be saved in the ```saved_models``` directory. We can test this model locally by running ```test_model.py```. To test the model on different images, you can change the images being loaded by ```test_image_head_path``` and ```test_image_hardhat_path``` in the [Python script](test_model.py).
+7) Once the Federated Learning is complete, the final global model will be saved in the ```saved_models``` directory. We can test this model locally by running ```test_model.py```. To test the model on different images, you can change the images being loaded by ```test_image_head_path``` and ```test_image_hardhat_path``` in the [Python script](test_model.py).
 
 ## Warning
 
