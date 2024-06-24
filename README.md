@@ -2,7 +2,7 @@
 
 ![Cover image](media/cover_image.png)
 
-This repository demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model and deploy it to a wide range of devices by using [Edge Impulse Python SDK](https://docs.edgeimpulse.com/docs/tools/edge-impulse-python-sdk).
+This repository demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model. Example from https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git but adapted to save global model and aggregated results after every round.
 
 The main characteristics of this architecture include:
 - At least 2 connected devices(clients) that will individually train a local model.
@@ -32,9 +32,6 @@ If you have Python3 you can replace ```pip``` with ```pip3``` in the commands be
 
 1) Start by cloning the repository on the device that will run as the server. For the client devices, we only need to copy to them the [datasets](datasets/) folder, [requirements_client.txt](requirements_client.txt) and [client.py](client.py). You can also clone the repository on the client devices, but this will load unnecessary files on them. 
 
-```
-git clone https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git
-```
 
 2) Install dependencies on the device running as the server with the command below:
 ```
@@ -48,24 +45,22 @@ pip install -r requirements_client.txt
 
 4) Next, update ```server_address``` value in both [server.py](server.py) and [client.py](client.py) with the IP address of the device running as the server. If you get an error message from ```server.py``` that says ```_ERROR_MESSAGE_PORT_BINDING_FAILED```, change the server's port to another one that is available.
 
-5) Update ```ei.API_KEY``` in [server.py](server.py) with your [Edge Impulse project's API Key](https://edgeimpulse.readme.io/reference/edge-impulse-api#api-key).
-
-6) Finally, start the server by running [server.py](server.py) on the device that will act as the server:
+5) Finally, start the server by running [server.py](server.py) on the device that will act as the server:
 ```
 python server.py
 ```
 
-7) Start one client by running [client.py](client.py) on a one device that is running as a client. Note that we need to pass the ```client_number``` so that we can load the dataset for that client. To use a device as the first client, run the command below:
+6) Start one client by running [client.py](client.py) on a one device that is running as a client. Note that we need to pass the ```client_number``` so that we can load the dataset for that client. To use a device as the first client, run the command below:
 ```
 python client.py --client_number=1
 ```
 
-8) To use another device as the second client, run [client.py](client.py) with the command below. Note that we need at least two clients for the Federated Learning to start.
+7) To use another device as the second client, run [client.py](client.py) with the command below. Note that we need at least two clients for the Federated Learning to start.
 ```
 python client.py --client_number=2
 ```
 
-9) Once the Federated Learning is complete, the final global model will be saved in the ```saved_models``` directory and also in your Edge Impulse project. We can test this model locally by running ```test_model.py```. To test the model on different images, you can change the images being loaded by ```test_image_head_path``` and ```test_image_hardhat_path``` in the [Python script](test_model.py).
+8) Once the Federated Learning is complete, the final global model will be saved in the ```saved_models``` directory and also in your Edge Impulse project. We can test this model locally by running ```test_model.py```. To test the model on different images, you can change the images being loaded by ```test_image_head_path``` and ```test_image_hardhat_path``` in the [Python script](test_model.py).
 
 ## Warning
 

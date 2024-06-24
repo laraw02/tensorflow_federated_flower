@@ -15,20 +15,11 @@ import pandas as pd
 import edgeimpulse as ei
 
 
-save_evaluation = False
-save_updated_model = False
+save_evaluation = True
+save_updated_model = True
 
 # server address = {IP_ADDRESS}:{PORT}
-server_address = "172.26.13.150:5050"
-
-# this variable determines if model profiling and deployment with Edge Impulse will be done
-profile_and_deploy_model_with_EI = False
-
-# change this to your Edge Impulse API key
-ei.API_KEY = "ei_8df1682c9df573ddafcfa6b5390b537bbe9811860ab9fadd88812a3f5287ca9e"
-
-# defining a .eim file that will be automatically downloaded on the server computer
-deploy_eim = "modelfile.eim"
+server_address = "10.46.134.7:5050"
 
 # list with the classes for the image classification
 classes = ["head", "hardhat"]
@@ -44,6 +35,66 @@ local_client_epochs = 20
 local_client_batch_size = 8
 
 file_name = "loss_metrics"
+
+class AggregateCustomMetricStrategy(fl.server.strategy.FedAvg):
+        def aggregate_evaluate(
+            self,
+            server_round,
+            results,
+            failures,
+        ):
+            """Aggregate evaluation accuracy using weighted average and write results to .csv file"""
+
+            if not results:
+                return None, {}
+
+            # Call aggregate_evaluate from base class (FedAvg) to aggregate loss and metrics
+            aggregated_loss, aggregated_metrics = super().aggregate_evaluate(server_round, results, failures)
+
+            # Weigh accuracy of each client by number of examples used
+            accuracies = [r.metrics["accuracy"] * r.num_examples for _, r in results]
+            examples = [r.num_examples for _, r in results]
+
+            # Aggregate and print custom metric
+            aggregated_accuracy = sum(accuracies) / sum(examples)
+            #print(f"AGGREGATION OF CLIENT MODELS EVALUATED")
+
+            if save_evaluation: 
+                new_data = {'aggregated_loss': [aggregated_loss], 'aggregated_accuracy': [aggregated_accuracy]}
+                df = pd.DataFrame(new_data)
+
+            # Check if the file exists
+                if os.path.isfile(file_name):
+                # Append new data to the existing CSV file
+                    df.to_csv(file_name, mode='a', header=False, index=False)
+                else:
+                # If the file does not exist, write the header as well
+                    df.to_csv(file_name, mode='w', header=True, index=False)
+                
+                # Return aggregated loss and metrics (i.e., aggregated accuracy)
+            return aggregated_loss, {"accuracy": aggregated_accuracy}
+
+        def aggregate_fit(
+        self,
+        server_round,
+        results,
+        failures,
+        ):
+            """Save updated global model after each federeated learning round"""
+
+            aggregated_parameters, aggregated_metrics = super().aggregate_fit(server_round, results, failures)
+            if save_updated_model:
+
+                if aggregated_parameters is not None:
+                # Convert `Parameters` to `List[np.ndarray]`
+                    aggregated_ndarrays: List[np.ndarray] = fl.common.parameters_to_ndarrays(aggregated_parameters)
+
+                # Save aggregated_ndarrays
+                    print(f"Saving round {server_round} aggregated_ndarrays...")
+                    np.savez(f"round-{server_round}-weights.npz", *aggregated_ndarrays)
+
+            return aggregated_parameters, aggregated_metrics
+
 
 def main() -> None:
     # load and compile model for : server-side parameter initialization, server-side parameter evaluation
@@ -96,84 +147,6 @@ def main() -> None:
     # print a summary of the model architecture
     #model.summary()
     
-    
-    class AggregateCustomMetricStrategy(fl.server.strategy.FedAvg):
-        def aggregate_evaluate(
-            self,
-            server_round,
-            results,
-            failures,
-        ):
-            """Aggregate evaluation accuracy using weighted average and write results to .csv file"""
-
-            if not results:
-                return None, {}
-
-            # Call aggregate_evaluate from base class (FedAvg) to aggregate loss and metrics
-            aggregated_loss, aggregated_metrics = super().aggregate_evaluate(server_round, results, failures)
-
-            # Weigh accuracy of each client by number of examples used
-            accuracies = [r.metrics["accuracy"] * r.num_examples for _, r in results]
-            examples = [r.num_examples for _, r in results]
-
-            # Aggregate and print custom metric
-            aggregated_accuracy = sum(accuracies) / sum(examples)
-            #print(f"AGGREGATION OF CLIENT MODELS EVALUATED")
-
-            if save_evaluation: 
-                new_data = {'aggregated_loss': [aggregated_loss], 'aggregated_accuracy': [aggregated_accuracy]}
-                df = pd.DataFrame(new_data)
-
-            # Check if the file exists
-                if os.path.isfile(file_name):
-                # Append new data to the existing CSV file
-                    df.to_csv(file_name, mode='a', header=False, index=False)
-                else:
-                # If the file does not exist, write the header as well
-                    df.to_csv(file_name, mode='w', header=True, index=False)
-                
-                # Return aggregated loss and metrics (i.e., aggregated accuracy)
-            return aggregated_loss, {"accuracy": aggregated_accuracy}
-
-            """
-            with open(file_name, 'a') as f:
-                if f.tell() != 0:
-                    f.write('\n')
-
-                json.dump({'aggregated_loss': aggregated_loss, 'aggregated_accuracy': aggregated_accuracy}, f)
-            """
-
-        def aggregate_fit(
-        self,
-        server_round,
-        results,
-        failures,
-        ):
-            """Save updated global model after each federeated learning round"""
-
-            aggregated_parameters, aggregated_metrics = super().aggregate_fit(server_round, results, failures)
-            if save_updated_model:
-
-                if aggregated_parameters is not None:
-                # Convert `Parameters` to `List[np.ndarray]`
-                    aggregated_ndarrays: List[np.ndarray] = fl.common.parameters_to_ndarrays(aggregated_parameters)
-
-                # Save aggregated_ndarrays
-                    print(f"Saving round {server_round} aggregated_ndarrays...")
-                    np.savez(f"round-{server_round}-weights.npz", *aggregated_ndarrays)
-
-            return aggregated_parameters, aggregated_metrics
-
-            
-    """
-    class SaveEvalutaionStrategy(strategy):
-        def aggregate_evaluate(self, num_rounds, results, failures):
-            loss_aggregated, metrics_aggregated = super().aggregate_evaluate(num_rounds, results, failures)
-            if loss_aggregated and metrics_aggregated is not None:
-                with open(file_name, 'w') as f:
-                    json.dump({'loss_aggregated': loss_aggregated, 'metrics_aggregated': metrics_aggregated}, f)
-                
-    """
 
         # create strategy
     strategy = AggregateCustomMetricStrategy(
@@ -262,12 +235,6 @@ def get_evaluate_fn(model):
 
             # test the updated model
             test_updated_model(model)
-
-            # ***** Using Edge Impulse Python SDK to profile the updated model and deploy it for various MCUs/MPUs (microcontrollers/microprocessers) *****
-            if (profile_and_deploy_model_with_EI):
-                ei_profile_and_deploy_model(model)
-            else:
-                print("Skipping profiling and deploying with Edge Impulse BYOM!")
              
         return loss, {"accuracy": accuracy}
     return evaluate
@@ -331,39 +298,6 @@ def test_updated_model(model):
     [0.00373875 0.9962612 ]
     The model mostly predicted hardhat with a score/confidence of 0.9962612
     """
-
-def ei_profile_and_deploy_model(model):
-    # list the available profile target devices
-    ei.model.list_profile_devices()
-
-    # estimate the RAM, ROM, and inference time for our model on the target hardware family
-    try:
-        profile = ei.model.profile(model=model,
-                                device='raspberry-pi-4')
-        print(profile.summary())
-    except Exception as e:
-        print(f"Could not profile: {e}")
-
-    # list the available profile target devices
-    ei.model.list_deployment_targets()
-
-    # set model information, such as your list of labels
-    model_output_type = ei.model.output_type.Classification(labels=classes)
-
-    # create eim executable with trained model
-    deploy_bytes = None
-    try:
-        deploy_bytes = ei.model.deploy(model=model,
-                                    model_output_type=model_output_type,
-                                    deploy_target='runner-linux-aarch64',
-                                    output_directory='ei_deployed_model')
-    except Exception as e:
-        print(f"Could not deploy: {e}")
-
-    # write the downloaded raw bytes to a file
-    if deploy_bytes:
-        with open(deploy_eim, 'wb') as f:
-            f.write(deploy_bytes)
 
 if __name__ == "__main__":
     main()
