@@ -1,7 +1,5 @@
 # TensorFlow Federated Learning 
 
-![Cover image](media/cover_image.png)
-
 This repository is from https://github.com/SolomonGithu/tensorflow_federated_learning_and_edge_impulse_model_deployment.git but has been adapted to save global model and aggregated results on the server after every round. The setup and instructions still remain the same. This example demonstrates how to use [Flower Federated Learning](https://flower.dev/docs/framework/tutorial-what-is-federated-learning.html) to train a TensorFlow model.
 
 The main characteristics of this architecture include:
